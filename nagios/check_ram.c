@@ -2,6 +2,7 @@
  * File:	check_ram.c
  * Author:	Pierre Schweitzer <pierre@reactos.org>
  * Created:	23 Feb 2012
+ * Licence:	GNU GPL v2 or any later version
  * Purpose:	Nagios plugin to check RAM use
  */
 
