@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 
-		// Find it in mounts
+		/* Find it in mounts */
 		rewind(mounts);
 
 		while (feof(mounts) == 0) {
