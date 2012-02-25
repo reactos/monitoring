@@ -1,3 +1,11 @@
+/**
+ * File:	check_mountpoints.c
+ * Author:	Pierre Schweitzer <pierre@reactos.org>
+ * Created:	25 Feb 2012
+ * Licence:	GNU GPL v2 or any later version
+ * Purpose:	Nagios plugin to check NFS mount points
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
