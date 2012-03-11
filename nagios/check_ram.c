@@ -133,6 +133,11 @@ int main(int argc, char *argv[]) {
 	/* We need MemTotal, MemFree, Buffers, Cached */
 	while (feof(meminfo) == 0 && found < 4) {
 		if (fgets(line, (int)sizeof(line), meminfo) != line) {
+			/* Workaround normal behavior of fgets - it doesn't set FEOF when reading to the end */
+			if (feof(meminfo) != 0) {
+				break;
+			}
+
 			(void)fclose(meminfo);
 			printf("RAM CRITICAL - Failed reading /proc/meminfo\n");
 			return CRITICAL;

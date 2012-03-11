@@ -32,8 +32,8 @@ typedef struct {
 	char *log_file;
 } params_t;
 
-char *default_log_file = "/var/log/apcupsd.status";
-char *lines[] = {
+const char *default_log_file = "/var/log/apcupsd.status";
+const char *lines[] = {
 	"BCHARGE",
 	"ITEMP",
 	"LOADPCT",
@@ -226,7 +226,7 @@ static int parse_command_line(int argc, char *argv[], params_t *param) {
 		}
 
 		/* This is the check to perform */
-		if (param->check != -1) {
+		if (param->check != (checks_t)-1) {
 			/* This is unfortunate */
 			err = -1;
 			break;
@@ -246,7 +246,7 @@ static int parse_command_line(int argc, char *argv[], params_t *param) {
 	}
 
 	/* Now, validate what we got, or complete */
-	if (param->check == -1) {
+	if (param->check == (checks_t)-1) {
 		return -1;
 	}
 
@@ -306,6 +306,11 @@ int main(int argc, char *argv[]) {
 	/* Now, find a line which begins matches test */
 	while (feof(status_file) == 0) {
 		if (fgets(line, (int)sizeof(line), status_file) != line) {
+			/* Workaround normal behavior of fgets - it doesn't set FEOF when reading to the end */
+			if (feof(status_file) != 0) {
+				break;
+			}
+
 			(void)fclose(status_file);
 			printf("CRITICAL - Failed reading %s\n", param.log_file);
 			return CRITICAL;
