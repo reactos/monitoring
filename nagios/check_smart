@@ -51,7 +51,7 @@ def parseCmdLine(args):
         version = "%%prog %s" % (__version__)
 
         parser = OptionParser(usage=usage, version=version)
-	parser.add_option("-d", "--device", action="store", dest="device", default="", metavar="DEVICE",
+        parser.add_option("-d", "--device", action="store", dest="device", default="", metavar="DEVICE",
 			help="device to check")
         parser.add_option("-v", "--verbosity", action="store",
                         dest="verbosity", type="int", default=0,
@@ -63,6 +63,8 @@ def parseCmdLine(args):
         parser.add_option("-c", "--critical-threshold", metavar="TEMP", action="store",
                         type="int", dest="criticalThreshold", default="60",
                         help="set temperature critical threshold to given temperature (defaults to 60)")
+        parser.add_option("-r", "--raid", action="store", dest="raid", default="", metavar="RAID",
+			help="raid type, disk on the raid")
 
         return parser.parse_args(args)
 # end
@@ -108,9 +110,9 @@ def checkSmartMonTools(path):
 # end
 
 
-def callSmartMonTools(path, device):
+def callSmartMonTools(path, device, raid):
         # get health status
-        cmd = "%s -H %s" % (path, device)
+        cmd = "%s -H %s %s" % (path, raid, device)
         vprint(3, "Get device health status: %s" % cmd)
         # filter out deprecation warnings
         warnings.filterwarnings('ignore', category=DeprecationWarning, message=r'os\.popen3')
@@ -125,7 +127,7 @@ def callSmartMonTools(path, device):
         # done
 
         # get temperature
-        cmd = "%s -A %s" % (path, device)
+        cmd = "%s -A %s %s" % (path, raid, device)
         vprint(3, "Get device temperature: %s" % cmd)
         (child_stdin, child_stdout, child_stderr) = os.popen3(cmd)
         line = child_stderr.readline()
@@ -234,6 +236,14 @@ if __name__ == "__main__":
         device = options.device
         vprint(1, "Device: %s" % device)
 
+        vprint(2, "Get raid type and disk")
+        raid = options.raid
+        vprint(1, "Raid: %s" % raid)
+
+        if raid != "":
+                raid = "--device=" + raid
+        # fi
+
         # check if we can access 'path'
         vprint(2, "Check device")
         (value, message) = checkDevice(device)
@@ -250,7 +260,7 @@ if __name__ == "__main__":
 
         # call smartctl and parse output
         vprint(2, "Call smartctl")
-        (value, message, healthStatusOutput, temperatureOutput) = callSmartMonTools(_smartctlPath, device)
+        (value, message, healthStatusOutput, temperatureOutput) = callSmartMonTools(_smartctlPath, device, raid)
         if value != 0:
                 exitWithMessage(value, message)
         vprint(2, "Parse smartctl output")
