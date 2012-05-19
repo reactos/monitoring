@@ -31,7 +31,7 @@ fi
 if [ "x$1" == "xSYN" ]; then
 	syn=`echo $current_data | awk -F ',' '{print $8}'`
 	synack=`echo $current_data | awk -F ',' '{print $9}'`
-	echo "SYN: Syn per s: $syn, Synack per s: $synack|syn=$syn, synack=$synack"
+	echo "SYN: Syn per s: $syn, Synack per s: $synack|syn=$syn synack=$synack"
 	exit 0;
 fi
 
@@ -40,7 +40,7 @@ if [ "x$1" == "xSES" ]; then
 	sdel=`echo $current_data | awk -F ',' '{print $11}'`
 	stot=`echo $current_data | awk -F ',' '{print $12}'`
 	smax=`echo $current_data | awk -F ',' '{print $13}'`
-	echo "SESSIONS: new per s: $snew, deleted per s: $sdel, total: $stot/$smax|new=$snew, deleted=$sdel, total=$stot"
+	echo "SESSIONS: new per s: $snew, deleted per s: $sdel, total: $stot/$smax|new=$snew deleted=$sdel total=$stot"
 	exit 0;
 fi
 
