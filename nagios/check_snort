@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Check if Snort is running
+`cat /var/run/snort_eth0.pid | xargs kill -0`
+if [ $? != 0 ]; then
+	echo "ERROR: Snort is not running!"
+	exit 2;
+fi
+
+# Check if caller wants to know about Snort status
+if [ "x$1" == "x" ]; then
+	echo "OK: Snort is running"
+	exit 0;
+fi
+
+# Get perf data
+current_data=`tail -n1 '/var/log/snort/snort.stats'`
+if [ $? != 0 ]; then
+	echo "UNKNOWN: No data!"
+	exit 3;
+fi
+
+# Check accuracy
+now=`date +'%s'`
+when=`echo $current_data | awk -F ',' '{print $1}'`
+if [ $now -ge $(($when + 600)) ]; then
+	echo "UNKNOWN: Outdated data!"
+	exit 3;
+fi
+
+if [ "x$1" == "xSYN" ]; then
+	syn=`echo $current_data | awk -F ',' '{print $8}'`
+	synack=`echo $current_data | awk -F ',' '{print $9}'`
+	echo "SYN: Syn per s: $syn, Synack per s: $synack|syn=$syn, synack=$synack"
+	exit 0;
+fi
+
+if [ "x$1" == "xSES" ]; then
+	snew=`echo $current_data | awk -F ',' '{print $10}'`
+	sdel=`echo $current_data | awk -F ',' '{print $11}'`
+	stot=`echo $current_data | awk -F ',' '{print $12}'`
+	smax=`echo $current_data | awk -F ',' '{print $13}'`
+	echo "SESSIONS: new per s: $snew, deleted per s: $sdel, total: $stot/$smax|new=$snew, deleted=$sdel, total=$stot"
+	exit 0;
+fi
+
+echo "UNKNOWN: Unknown argument!"
+exit 3;
