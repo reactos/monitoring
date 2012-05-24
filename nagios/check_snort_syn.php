@@ -1,7 +1,10 @@
 <?php
 #
-# Copyright (c) 2012 Pierre Schweitzer (pierre@reactos.org)
-# Plugin: check_snort
+# File:        check_snort_syn.php
+# Author:      Pierre Schweitzer <pierre@reactos.org>
+# Created:     24 May 2012
+# Licence:     GNU GPL v2 or any later version
+# Purpose:     Template for pnp4nagios & check_snort SYN
 #
 
 $opt[0] = '--title "Snort: Syn"';

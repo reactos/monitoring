@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# File:        check_snort
+# Author:      Pierre Schweitzer <pierre@reactos.org>
+# Created:     19 May 2012
+# Licence:     GNU GPL v2 or any later version
+# Purpose:     Nagios plugin to check Snort status
+#
 
 # Check if Snort is running
 `cat /var/run/snort_eth0.pid | xargs kill -0`
