@@ -40,7 +40,7 @@ if [ "x$1" == "xSES" ]; then
 	sdel=`echo $current_data | awk -F ',' '{print $11}'`
 	stot=`echo $current_data | awk -F ',' '{print $12}'`
 	smax=`echo $current_data | awk -F ',' '{print $13}'`
-	echo "SESSIONS: new per s: $snew, deleted per s: $sdel, total: $stot/$smax|new=$snew deleted=$sdel total=$stot"
+	echo "SESSIONS: new per s: $snew, deleted per s: $sdel, total: $stot/$smax|new=$snew deleted=$sdel total=$stot max=$smax"
 	exit 0;
 fi
 
