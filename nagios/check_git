@@ -1,0 +1,59 @@
+#!/bin/bash
+#
+# File:		check_git
+# Author:	Pierre Schweitzer <pierre@reactos.org>
+# Created:	14 Jun 2012
+# Licence:	GNU GPL v2 or any later version
+# Purpose:	Nagios plugin to check git repo
+#
+
+# Host and directory are mandatory
+if [ $# -lt 4 ]; then
+	echo "Use: $0 -H <host> --dir <repo>"
+	exit 3
+fi
+
+# Check for host and directory
+HOST=""
+DIR=""
+if [ "$1" == "-H" ]; then
+	HOST=$2
+elif [ "$1" == "--dir" ]; then
+	DIR=$2
+else
+	echo "Unknown arg: $1"
+	exit 3
+fi
+
+if [ "$3" == "-H" ]; then
+	HOST=$4
+elif [ "$3" == "--dir" ]; then
+	DIR=$4
+else
+	echo "Unknown arg: $3"
+	exit 3
+fi
+
+# Validate args
+if [ "$HOST" == "" ]; then
+	echo "No host supplied"
+	exit 3
+fi
+
+if [ "$DIR" == "" ]; then
+	echo "No directory supplied"
+	exit 3
+fi
+
+# Get the directory
+OUTPUT=`git-ls-remote git://$HOST/$DIR master 2>&1`
+if [ $? -eq 0 ]; then
+	# If it is OK, output the revision
+	REV=`echo $OUTPUT | awk '{print $1}'`
+	echo "GIT OK: Directory at $REV"
+	exit 0
+else
+	# If it is not OK, output the error
+	echo "GIT ERROR: Directory error: $OUTPUT"
+	exit 2
+fi
