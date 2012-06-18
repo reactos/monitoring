@@ -46,7 +46,7 @@ if [ "$DIR" == "" ]; then
 fi
 
 # Get the directory
-OUTPUT=`git-ls-remote git://$HOST/$DIR master 2>&1`
+OUTPUT=`git ls-remote git://$HOST/$DIR master 2>&1`
 if [ $? -eq 0 ]; then
 	# If it is OK, output the revision
 	REV=`echo $OUTPUT | awk '{print $1}'`
