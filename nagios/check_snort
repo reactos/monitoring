@@ -51,5 +51,12 @@ if [ "x$1" == "xSES" ]; then
 	exit 0;
 fi
 
+if [ "x$1" == "xTRA" ]; then
+	traffic=`echo $current_data | awk -F ',' '{print $3}'`
+	alerts=`echo $current_data | awk -F ',' '{print $4}'`
+	echo "TRAFFIC: $traffic mbit/s, $alerts alerts per sec|mbits=$traffic alerts=$alerts"
+	exit 0;
+fi
+
 echo "UNKNOWN: Unknown argument!"
 exit 3;
