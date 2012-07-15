@@ -10,7 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 typedef enum {
@@ -25,7 +26,7 @@ typedef enum {
 #define unused(a) (void)a
 
 int main(int argc, char *argv[]) {
-	int fd;
+	struct stat stbuf;
 	FILE *mounts, *fstab;
 	char line_fs[LINE_SIZE];
 	char line_mnt[LINE_SIZE];
@@ -153,8 +154,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		/* Finally, check that the mount point isn't stale */
-		fd = open(point, O_RDONLY);
-		if (fd == -1) {
+		if (stat(point, &stbuf) == -1) {
 			if (errno == ESTALE) {
 				(void)fclose(mounts);
 				(void)fclose(fstab);
@@ -163,8 +163,6 @@ int main(int argc, char *argv[]) {
 			}
 
 			/* Otherwise, ignore (is that we want?) */
-		} else {
-			(void)close(fd);
 		}
 	}
 
