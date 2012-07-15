@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
 
 typedef enum {
 	OK,
@@ -27,23 +28,18 @@ typedef struct {
 #define strncmp_cst(s1, s2)	strncmp(s1, s2, sizeof(s2) - sizeof(char))
 #define print_usage(exe)	printf("Usage: %s -w <percent_free>%% -c <percent_free>%%\n", exe);
 
-static int parse_command_line(char *argv[], params_t *param) {
+static int parse_command_line(int argc, char *argv[], params_t *param) {
 	char *inval;
 	size_t arg_len;
-	int arg, err = 0;
+	int opt, err = 0;
 	int *to_set = NULL;
 
-	for (arg = 1; arg < 5; arg += 2) {
-		/* Check we have a minus parameter */
-		if (argv[arg][0] != '-') {
-			err = -1;
-			break;
-		}
+	opterr = 0;
 
-		/* Select parameter to set */
-		if (argv[arg][1] == 'w') {
+	while ((opt = getopt(argc, argv, "w:c:")) != -1) {
+		if (opt == 'w') {
 			to_set = &param->warning;
-		} else if (argv[arg][1] == 'c') {
+		} else if (opt == 'c') {
 			to_set = &param->critical;
 		} else {
 			err = -1;
@@ -51,18 +47,18 @@ static int parse_command_line(char *argv[], params_t *param) {
 		}
 
 		/* We have to have an integer (percent) */
-		arg_len = strlen(argv[arg + 1]);
-		if (argv[arg + 1][arg_len - 1] != '%') {
+		arg_len = strlen(optarg);
+		if (optarg[arg_len - 1] != '%') {
 			err = -2;
 			break;
 		}
 
 		/* Remove symbol */
-		argv[arg + 1][arg_len - 1] = '\0';
+		optarg[arg_len - 1] = '\0';
 		arg_len--;
 
 		/* Extract int */
-		*to_set = strtol(argv[arg + 1], &inval, 10);
+		*to_set = strtol(optarg, &inval, 10);
 		if (inval[0] != '\0') {
 			err = -2;
 			break;
@@ -118,7 +114,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Parse command line */
-	if (parse_command_line(argv, &param) < 0) {
+	if (parse_command_line(argc, argv, &param) < 0) {
 		print_usage(argv[0]);
 		return UNKNOWN;
 	}
