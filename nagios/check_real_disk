@@ -1,0 +1,93 @@
+#!/bin/sh
+# File:    check_real_disk
+# Author:  Pierre Schweitzer <pierre@reactos.org>
+# Created: 10 Aug 2011
+# Purpose: Nagios plugin to get remaining space on a disk
+#          taking sparse files into account
+
+# Define nagios states
+STATE_OK=0
+STATE_WARNING=1
+STATE_CRITICAL=2
+STATE_UNKNOWN=3
+STATE_DEPENDENT=4
+
+# Define warning and critical - in MB
+WARNING=$((25*1024))
+CRITICAL=$((20*1024))
+
+# Get args
+while [ $# -gt 0 ]; do
+	case $1 in
+	-w)
+		shift
+		if [ $# -eq 0 ]; then
+			# Error
+			echo "$0: option requires an argument"
+			exit $STATE_UNKNOWN
+		fi;
+		WARNING=$1
+		;;
+	-c)
+		shift
+		if [ $# -eq 0 ]; then
+			# Error
+			echo "$0: option requires an argument"
+			exit $STATE_UNKNOWN
+		fi;
+		CRITICAL=$1
+		;;
+	*)
+		# Error
+		echo "$0: invalid option"
+		exit $STATE_UNKNOWN
+		;;
+	esac
+	shift
+done
+
+# Check consistency
+#if [ $CRITICAL -gt $WARNING ]; then
+#	echo "$0: Could not parse arguments"
+#	exit $STATE_UNKNOWN
+#fi;
+
+# Get needed sizes
+# MAX will contain the partition size, AVAIL the partition size minus the used space minus the blocks reserved by the filesystem itself.
+MAX=`df / | awk '{print $2}' | tail -n 1`
+AVAIL=`df / | awk '{print $4}' | tail -n 1`
+KVM=`du -s /srv/kvm/ | awk '{print $1}'`
+REAL=`du -s --apparent-size /srv/kvm/ | awk '{print $1}'`
+
+# Get available space  - in MB
+# This is the space we can still safely allocate for new files, it takes the blocks reserved by sparse files and the FS itself into account.
+TOTAL=$((($AVAIL + $KVM - $REAL) / 1024))
+
+# Get total used - in MB
+# This used space also encompasses the blocks reserved by sparse files and by the filesystem itself.
+MAX=$(($MAX / 1024))
+USED=$(($MAX - $TOTAL))
+
+# Get percent free
+PCT=$((($TOTAL * 100) / $MAX))
+
+# Now, perform perf data
+WARN=$(($MAX - $WARNING))
+CRIT=$(($MAX - $CRITICAL))
+MIN=0
+
+if [ $TOTAL -le $CRITICAL ]; then
+	# Critical!
+	echo "DISK CRITICAL - free space: / $TOTAL MB ($PCT""%);| /=$USED""MB;$WARN;$CRIT;$MIN;$MAX"
+	exit $STATE_CRITICAL
+fi;
+
+if [ $TOTAL -le $WARNING ]; then
+	# Warning!
+	echo "DISK WARNING - free space: / $TOTAL MB ($PCT""%);| /=$USED""MB;$WARN;$CRIT;$MIN;$MAX"
+	exit $STATE_WARNING
+fi;
+
+# All correct
+echo "DISK OK - free space: / $TOTAL MB ($PCT""%);| /=$USED""MB;$WARN;$CRIT;$MIN;$MAX"
+exit $STATE_OK
