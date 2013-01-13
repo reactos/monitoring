@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# File:        check_mailman
+# Author:      Pierre Schweitzer <pierre@reactos.org>
+# Created:     13 Jan 2013
+# Licence:     GNU GPL v2 or any later version
+# Purpose:     Nagios plugin to check mailman queue
+#
+
+MAILMAN_QUEUE="/var/lib/mailman/qfiles/"
+
+# Count all the mails (in out, in and retry)
+in=`ls -l ${MAILMAN_QUEUE}in/ | wc -l`
+out=`ls -l ${MAILMAN_QUEUE}out/ | wc -l`
+retry=`ls -l ${MAILMAN_QUEUE}retry/ | wc -l`
+
+# Compute total amount
+total=$(($in + $out + $retry - 3))
+
+if [ $total -lt 0 ]; then
+	echo "UNKNOWN: Error will getting data"
+	exit 3;
+fi
+
+if [ $total -gt 200 ]; then
+	echo "ERROR: $total mails in queue!|mails=$total"
+	exit 2;
+fi
+
+if [ $total -gt 100 ]; then
+	echo "WARNING: $total mails in queue!|mails=$total"
+	exit 1;
+fi
+
+echo "OK: $total mails in queue.|mails=$total"
+exit 0;
