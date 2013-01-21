@@ -164,6 +164,10 @@ def parseOutput(healthMessage, temperatureMessage):
                         getNext = 1
                 # fi
         # done
+
+	if getNext == 0:
+		return ("FAILED", "Temperature: 0")
+
         parts = statusLine.split()
         healthStatus = parts[-1]
         vprint(3, "Health status: %s" % healthStatus)
