@@ -1,0 +1,207 @@
+#!/usr/bin/perl
+#
+# (c) 2005   Johan Nilsson <johan.nilsson@axis.com>
+#            Martin Dag Nilsson <martin.dag.nilsson@axis.com>
+#            AXIS Communications AB
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty
+# of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# you should have received a copy of the GNU General Public License
+# along with this program (or with Netsaint);  if not, write to the
+# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+# Boston, MA 02111-1307, USA
+#
+#######################################################################
+# check_serveraid, version 0.10
+# 
+# This program is tested under Debian/GNU 3.1 and Nagios 1.3
+#
+# The following prerequisits exists:
+# * The host that is beeing monitored must have the following
+#       * sudo installed, and configured to allow user 'nagios'
+#         to run commands without password
+#       * the public key for the user nagios on the nagios-server in 
+#         the local user nagios' authorized_keys 
+#       * the ipssend utility, default path /opt/IBM/dumplog/ipssend
+# * The user nagios needs to have a private/public key-pair, without 
+#   passphrase or with passphrase managed by outer application
+# * This script is primarily designed for use with ServeRAID-cards 
+#   from IBM, and the corresponding Linux-utility ipssend (part of the 
+#   dumplog-utility), thus required to be installed on the monitored 
+#   host.
+#
+#######################################################################
+# check_serveraid, version 0.11
+# 
+# * Added support for drives in Hot-Spare-mode
+#       (Credits of Dr. Tilmann Bubeck )
+#
+#######################################################################
+
+
+use strict;
+use warnings;
+use Getopt::Long;                # Accept long options
+
+my ($IPS, @result, $diskerror, $driveerror, $help);
+my ($summaryline, $path, $cards, $drivewarning, $diskwarning);
+my @PATHS = ("/bin", "/usr/bin", "/usr/local/bin");
+
+my %EXIT_CODES = (
+        'OK'            => 0,
+        'WARNING'       => 1,
+        'CRITICAL'      => 2,
+        'UNKNOWN'       => 3
+);
+
+my %ERR_LEVELS = (
+        'EMERG'         => 0,   
+        'ALERT'         => 1,   
+        'CRIT'          => 2,   
+        'ERR'           => 3,   
+        'WARNING'       => 4,   
+        'NOTICE'        => 5,   
+        'INFO'          => 6,   
+        'DEBUG'         => 7,   
+        'TEST'          => 8    
+);
+
+my $DEBUG=0;
+my $state="OK";
+
+GetOptions (
+        "debug+"        => \$DEBUG,     # print debug info
+        "help"          => \$help,      # print help info
+        "path=s"        => \$path,      # path to ipssend
+        "cards=i"       => \$cards      # number of ServeRAID-cards
+);
+
+sub showUsage {
+print <<'USE';
+
+Usage: check_serveraid [options]
+where options is
+-d, --debug             print debugging info
+-h, --help              print this text
+-p, --path              path to binary
+-c, --cards             number of cards installed in system
+
+USE
+
+&exitNow("UNKNOWN");
+
+}
+
+sub exitNow {
+        ( $state ) = @_;
+        print "ServeRAID $state\n";
+        exit $EXIT_CODES{$state};
+}
+
+my $defaultSRpath="/usr/local/sbin/ipssend";
+
+if ( (defined ($help)) ) { # Print usage information as requested
+        &showUsage();
+}
+
+if ( (!defined ($path)) || ($path eq "" ) ) { # Check to see if we should use diffrent path to program
+        if ($DEBUG > 0) {
+                print "Using default path /usr/local/sbin/ipssend\n";
+        }
+        $path=$defaultSRpath;
+}
+
+if ( (!defined ($cards)) || ($cards eq "" ) ) { # No amount of cards defined, probing system
+        if ($DEBUG > 0) {
+                print "Probing for number of cards \n";
+        }
+        my $numofcards;
+        my $getcardscmd="$path getstatus 0";
+        if ($DEBUG > 0) {
+                print "Using command $getcardscmd \n";
+        }
+        open CMD, "$getcardscmd|" or &exitNow("WARNING");
+        while (<CMD>) {
+                if ( /Found (\d*) .*/ ) {
+                        $numofcards=$1;
+                }               
+        }
+        close CMD;
+        if ($DEBUG > 0) {
+                print "$numofcards cards found\n";
+        }
+        if ( !defined($numofcards) || $numofcards < 1 ) {
+                &exitNow("UNKNOWN");
+        }
+        $cards=$numofcards;
+        
+}
+
+$diskwarning=0;
+$diskerror=0;
+$drivewarning=0;
+$driveerror=0;
+my $iteration=0;
+
+while ( $iteration < $cards ) { # Do this as long as there's unchecked cards left...
+
+        $iteration++;
+        
+        if ( $DEBUG > 0 ) {
+                print "Started check for card # $iteration of total $cards\n";
+        }       
+        
+        $IPS="$path getconfig " . $iteration;
+        open CMD, "$IPS|" or &exitNow("UNKNOWN");
+        while (<CMD>) { push(@result,$_); }
+
+        foreach ( @result ) {
+                if ( /Device is a Hard disk/ .. /Target/ ) {
+                        if ( /State/ && ( /Defunct/ || /Rebuild/ ) ) {
+                                $diskerror++;
+                        } elsif ( /State/ && ! ( /ONL/ || /RDY/ || /HSP/ || /SHS/ ) ) { 
+                                $diskwarning++;
+                        }
+                }
+                if ( /Logical drive information/ .. /Physical device information/ ) {
+                        if ( /Status/ && ( /CRT/ || /OFL/ || /Critical/ ) ) {
+                                $driveerror++;
+                        } elsif ( /Status/ && ! ( /OKY/ ) ) {
+                                $drivewarning++;
+                        }
+                } elsif ( $_ =~ 'Logical drives' ) {
+                        $summaryline=$_;
+                }
+        }
+        close CMD;
+        if ( $DEBUG > 0 ) {
+                print "Finished check for card # $iteration of total $cards\n";
+        }
+}
+
+if ( $diskwarning > 0 ) {
+        print "Unknown state on physical disk! ";
+        $state="WARNING";
+}
+if ( $drivewarning > 0 ) {
+        print "Unknown state on logical drives! ";
+        $state="WARNING";
+}
+if ( $diskerror > 0 ) { # error on physical disk
+        print "Error on physical disk! ";
+        $state="CRITICAL";
+}
+if ( $driveerror > 0 ) { # error on logical drives
+        print "Error on logical drives! ";
+        $state="CRITICAL";
+}
+
+&exitNow($state);
