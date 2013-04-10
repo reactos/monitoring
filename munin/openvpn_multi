@@ -128,9 +128,9 @@ sub report {
 	close FILE;
 
 	print "multigraph openvpn_users\n";
-	if (exists $previous_state{"total_in"} && exists $previous_state{"total_out"}) {
-		my $old_tot_in = $previous_state{"total_in"};
-		my $old_tot_out = $previous_state{"total_out"};
+	if (exists $previous_state{"total.in"} && exists $previous_state{"total.out"}) {
+		my $old_tot_in = $previous_state{"total.in"};
+		my $old_tot_out = $previous_state{"total.out"};
 		if ($old_tot_in <= $tot_in && $old_tot_out <= $tot_out) {
 			print "in.value $tot_in\n";
 			print "out.value $tot_out\n";
@@ -143,8 +143,8 @@ sub report {
 		print "out.value 0\n";
 	}
 
-	$new_state{"total_in"} = $tot_in;
-	$new_state{"total_out"} = $tot_out;
+	$new_state{"total.in"} = $tot_in;
+	$new_state{"total.out"} = $tot_out;
 
 	save_state(%new_state);
 
