@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# File: check_vmware_modules
+# Author: Pierre Schweitzer <pierre@reactos.org>
+# Created: 16 Aug 2013
+# Licence: GNU GPL v2 or any later version
+# Purpose: Nagios plugin to check git repo
+#
+
+VMWARE_MODULES='vmnet vsock vmci vmmon'
+KERNEL=`uname -r`
+MODULES_DIR='/lib/modules/3.2.0-51-generic/misc/'
+
+# For every given module, check...
+for module in $VMWARE_MODULES; do
+	# Whether they have been built for current kernel (we don't care about other kernels)
+	if [ ! -f $MODULES_DIR$module.ko ]; then
+		echo "ERROR: module $module has not been found for current kernel!"
+		exit 2
+	fi
+
+	# Whether they're loaded
+	LOADED=`lsmod | grep $module`
+
+	if [ "x$LOADED" == "x" ]; then
+		echo "WARNING: module $module is not loaded!"
+		exit 1
+	fi
+done
+
+echo "OK"
+exit 0
