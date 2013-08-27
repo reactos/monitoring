@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# File:		disable_buildmaster_freeze
+# Author:	Pierre Schweitzer <pierre@reactos.org>
+# Created:	27 Aug 2013
+# Licence:	GNU GPL v2 or any later version
+# Purpose:	Script to disable buildmaster_freeze checks once it
+#		raised status CRITICAL HARD. It has then to be reenabled
+#		manually once the problem has been fixed
+#
+
+CMD_FILE=/var/lib/icinga/rw/icinga.cmd
+HOST=
+SERVICE=
+
+# We receive 3 arguments from Icinga (in theory):
+# Service state, state type, and attempts
+
+# If for whatever reason we didn't get our 3 args, quit
+if [ $# -lt 3 ]; then
+	exit
+fi
+
+# We want critical service
+if [ "$1" == "CRITICAL" ]; then
+	# In HARD state
+	if [ "$2" == "HARD" ]; then
+		# Then, kill service
+		NOW=`date +%s`
+		echo "[$NOW] DISABLE_SVC_CHECK;$HOST;$SERVICE" >> $CMD_FILE
+	fi
+fi
