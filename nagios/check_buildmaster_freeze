@@ -1,0 +1,72 @@
+#!/usr/bin/perl
+#
+# File:         check_buildmaster_freeze
+# Author:       Pierre Schweitzer <pierre@reactos.org>
+# Created:      27 Aug 2013
+# Licence:      GNU GPL v2 or any later version
+# Purpose:      Script to check for build master status. It tries
+#		to find, looking at logs, if in the latest 15min,
+#		a build could be blocked in the same state.
+#
+
+use warnings;
+use strict;
+use Time::Local;
+
+# We need a log file
+if ($#ARGV + 1 != 1) {
+	print "UNKNOWN: a log file has to be provided\n";
+	exit 3;
+}
+
+# Get it
+my $logfile = $ARGV[0];
+
+# Check it can be read with current E(U|G)ID
+if (! -r $logfile) {
+	print "UNKNOWN: not allowed to read log file\n";
+	exit 3;
+}
+
+# Open log file
+if (!open(FILE, $logfile)) {
+	print "UNKNOWN: can't read log file\n";
+	exit 3;
+}
+
+# This var will let know whether we can raise CRITICAL status
+# based on current timestamps, to know if the deadlock is recent
+# We don't want to alert with old events
+my $can_raise = 0;
+
+# Browse log file - this is acceptable method since log files are rotated
+while (<FILE>) {
+	# If we are allowed to raise to critical state
+	# If we find a line that shows a SQL transaction failed because of
+	# a lock while querying buildslave status, it could lead to infinite
+	# trigger, so alert
+	if ($can_raise == 1 &&
+	    $_ =~ /\s+sqlalchemy.exc.OperationalError: \(OperationalError\) database is locked u'UPDATE buildrequest_claims/) {
+		print "CRITICAL: Potential inifinite build state detected!\n";
+		close(FILE);
+		exit 2;
+	}
+	# Get time of the buildbot logs entries. They all start that way, except for
+	# stack traces: YYYY-MM-DD HH:MM:SS+
+	elsif ($_ =~ /(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)\+\d+/) {
+		# Get this time compared to epoch
+		my $time = timelocal($6, $5, $4, $3, $2 - 1, $1 - 1900);
+		# Get we have 15 mins between the event and now. This prevents
+		# warning about old and handled events
+		if (time - $time < 15*60) {
+			$can_raise = 1;
+		} else {
+			$can_raise = 0;
+		}
+	}
+}
+
+# If we raise that point, all was fine
+close(FILE);
+print "OK: Nothing wrong found in logs\n";
+exit 0;
