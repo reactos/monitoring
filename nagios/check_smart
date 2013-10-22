@@ -65,6 +65,8 @@ def parseCmdLine(args):
                         help="set temperature critical threshold to given temperature (defaults to 60)")
         parser.add_option("-r", "--raid", action="store", dest="raid", default="", metavar="RAID",
 			help="raid type, disk on the raid")
+        parser.add_option("-i", "--ignore-details", action="store", type="int", dest="ignoreDetails", default=False, metavar="DETAILS",
+			help="Ignore temperature status and health status details (don't attempt to read them)")
 
         return parser.parse_args(args)
 # end
@@ -110,7 +112,7 @@ def checkSmartMonTools(path):
 # end
 
 
-def callSmartMonTools(path, device, raid):
+def callSmartMonTools(path, device, raid, ignoreDetails):
         # get health status
         cmd = "%s -H %s %s" % (path, raid, device)
         vprint(3, "Get device health status: %s" % cmd)
@@ -125,6 +127,10 @@ def callSmartMonTools(path, device, raid):
         for line in child_stdout:
                 healthStatusOutput = healthStatusOutput + line
         # done
+
+	# If temperature is not needed, just return
+	if ignoreDetails == True:
+		return (0, "", healthStatusOutput, "")
 
         # get temperature
         cmd = "%s -A %s %s" % (path, raid, device)
@@ -144,7 +150,7 @@ def callSmartMonTools(path, device, raid):
 # end
 
 
-def parseOutput(healthMessage, temperatureMessage):
+def parseOutput(healthMessage, temperatureMessage, ignoreDetails):
         """Parse smartctl output
 
         Returns (health status, temperature).
@@ -162,6 +168,11 @@ def parseOutput(healthMessage, temperatureMessage):
                         break
                 elif line == "=== START OF READ SMART DATA SECTION ===":
                         getNext = 1
+		elif ignoreDetails == True and line.startswith("SMART Health Status"):
+			# Tricky: that's the line, get it!
+			getNext = 1
+			statusLine = line
+			break
                 # fi
         # done
 
@@ -172,38 +183,39 @@ def parseOutput(healthMessage, temperatureMessage):
         healthStatus = parts[-1]
         vprint(3, "Health status: %s" % healthStatus)
 
-
         # parse temperature attribute line
         temperature = 0
-        lines = temperatureMessage.split("\n")
-        for line in lines:
-                parts = line.split()
-                if len(parts):
-                        # 194 is the temperature value id
-                        if parts[0] == "194":
-                                temperature = int(parts[9])
-                                break
-                        # fi
-                # fi
-        # done
-        vprint(3, "Temperature: %d" %temperature)
+	if ignoreDetails == False:
+		lines = temperatureMessage.split("\n")
+		for line in lines:
+		        parts = line.split()
+		        if len(parts):
+		                # 194 is the temperature value id
+		                if parts[0] == "194":
+		                        temperature = int(parts[9])
+		                        break
+		                # fi
+		        # fi
+		# done
+		vprint(3, "Temperature: %d" %temperature)
+	# fi
 
         return (healthStatus, temperature)
 # end
 
 
 def createReturnInfo(healthStatus, temperature, warningThreshold,
-                criticalThreshold):
+                criticalThreshold, ignoreDetails):
         """Create return information according to given thresholds."""
 
         # this is absolutely critical!
-        if healthStatus != "PASSED":
+        if healthStatus != "PASSED" and healthStatus != "OK" :
                 return (2, "CRITICAL: device does not pass health status")
         # fi
 
-        if temperature > criticalThreshold:
+        if temperature > criticalThreshold and ignoreDetails == False:
                 return (2, "CRITICAL: device temperature (%d) exceeds critical temperature threshold (%s)" % (temperature, criticalThreshold))
-        elif temperature > warningThreshold:
+        elif temperature > warningThreshold and ignoreDetails == False:
                 return (1, "WARNING: device temperature (%d) exceeds warning temperature threshold (%s)" % (temperature, warningThreshold))
         else:
                 return (0, "OK: device is functional and stable (temperature: %d)" % temperature)
@@ -264,14 +276,14 @@ if __name__ == "__main__":
 
         # call smartctl and parse output
         vprint(2, "Call smartctl")
-        (value, message, healthStatusOutput, temperatureOutput) = callSmartMonTools(_smartctlPath, device, raid)
+        (value, message, healthStatusOutput, temperatureOutput) = callSmartMonTools(_smartctlPath, device, raid, options.ignoreDetails)
         if value != 0:
                 exitWithMessage(value, message)
         vprint(2, "Parse smartctl output")
-        (healthStatus, temperature) = parseOutput(healthStatusOutput, temperatureOutput)
+        (healthStatus, temperature) = parseOutput(healthStatusOutput, temperatureOutput, options.ignoreDetails)
         vprint(2, "Generate return information")
         (value, message) = createReturnInfo(healthStatus, temperature,
-                        options.warningThreshold, options.criticalThreshold)
+                        options.warningThreshold, options.criticalThreshold, options.ignoreDetails)
 
         # exit program
         exitWithMessage(value, message)
