@@ -9,7 +9,7 @@
 
 VMWARE_MODULES='vmnet vsock vmci vmmon'
 KERNEL=`uname -r`
-MODULES_DIR='/lib/modules/3.2.0-51-generic/misc/'
+MODULES_DIR="/lib/modules/$KERNEL/misc/"
 
 # For every given module, check...
 for module in $VMWARE_MODULES; do
