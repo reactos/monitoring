@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#ifdef __OpenBSD__
+#include <unistd.h>
+#endif
 
 typedef enum {
 	OK,
@@ -98,14 +101,20 @@ static int parse_command_line(int argc, char *argv[], params_t *param) {
 }
 
 int main(int argc, char *argv[]) {
+	params_t param = { -1, -1 };
+	long long available, critical, warning;
+	long long MemTot = 0;
+#ifdef __OpenBSD__
+	long pagesize;
+#else
 	char *begin;
 	FILE *meminfo;
 	int found = 0;
 	long long *to_set;
 	char line[LINE_SIZE];
-	params_t param = { -1, -1 };
-	long long in_use, available, critical, warning;
-	long long MemTot = 0, MemFree = 0, Buffers = 0, Cached = 0;
+	long long in_use;
+	long long MemFree = 0, Buffers = 0, Cached = 0;
+#endif
 
 	/* User has to provide w/c */
 	if (argc < 5) {
@@ -119,6 +128,7 @@ int main(int argc, char *argv[]) {
 		return UNKNOWN;
 	}
 
+#ifndef __OpenBSD__
 	/* Here we know we have everything */
 	meminfo = fopen("/proc/meminfo", "r");
 	if (meminfo == NULL) {
@@ -192,6 +202,27 @@ int main(int argc, char *argv[]) {
 	/* Compute memory in use */
 	in_use = MemTot - MemFree - Buffers - Cached;
 	available = MemTot - in_use;
+#else
+	pagesize = sysconf(_SC_PAGESIZE);
+	if (pagesize == -1) {
+		printf("RAM CRITICAL - Failed requesting page size\n");
+		return CRITICAL;
+	}
+
+	MemTot = sysconf(_SC_PHYS_PAGES);
+	if (MemTot == -1) {
+		printf("RAM CRITICAL - Failed requesting total pages\n");
+		return CRITICAL;
+	}
+	MemTot *= pagesize / 1024;
+
+	available = sysconf(_SC_AVPHYS_PAGES);
+	if (available == -1) {
+		printf("RAM CRITICAL - Failed requesting available pages\n");
+		return CRITICAL;
+	}
+	available *= pagesize / 1024;
+#endif
 
 	/* Compute thresholds */
 	critical = MemTot * param.critical / 100;
