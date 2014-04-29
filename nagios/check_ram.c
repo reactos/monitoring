@@ -11,7 +11,9 @@
 #include <string.h>
 #include <getopt.h>
 #ifdef __OpenBSD__
-#include <unistd.h>
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#include <sys/vmmeter.h>
 #endif
 
 typedef enum {
@@ -105,7 +107,9 @@ int main(int argc, char *argv[]) {
 	long long available, critical, warning;
 	long long MemTot = 0;
 #ifdef __OpenBSD__
-	long pagesize;
+	int mib[] = {CTL_VM, VM_UVMEXP};
+	struct uvmexp metrics;
+	size_t len = sizeof(metrics);
 #else
 	char *begin;
 	FILE *meminfo;
@@ -203,25 +207,13 @@ int main(int argc, char *argv[]) {
 	in_use = MemTot - MemFree - Buffers - Cached;
 	available = MemTot - in_use;
 #else
-	pagesize = sysconf(_SC_PAGESIZE);
-	if (pagesize == -1) {
-		printf("RAM CRITICAL - Failed requesting page size\n");
+	if (sysctl(mib, 2, &metrics, &len, NULL, 0) == -1) {
+		printf("RAM CRITICAL - Failed requesting VM stats\n");
 		return CRITICAL;
 	}
 
-	MemTot = sysconf(_SC_PHYS_PAGES);
-	if (MemTot == -1) {
-		printf("RAM CRITICAL - Failed requesting total pages\n");
-		return CRITICAL;
-	}
-	MemTot *= pagesize / 1024;
-
-	available = sysconf(_SC_AVPHYS_PAGES);
-	if (available == -1) {
-		printf("RAM CRITICAL - Failed requesting available pages\n");
-		return CRITICAL;
-	}
-	available *= pagesize / 1024;
+	MemTot = metrics.npages * metrics.pagesize / 1024;
+	available = metrics.free * metrics.pagesize / 1024;
 #endif
 
 	/* Compute thresholds */
