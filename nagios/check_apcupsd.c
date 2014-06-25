@@ -29,7 +29,7 @@ typedef struct {
 	long int warning;
 	long int critical;
 	checks_t check;
-	char *log_file;
+	const char *log_file;
 } params_t;
 
 const char *default_log_file = "/var/log/apcupsd.status";
