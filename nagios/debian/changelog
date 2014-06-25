@@ -1,0 +1,5 @@
+nagios-plugins-reactos (1.0-1) precise; urgency=low
+
+  * Initial release
+
+ -- Pierre Schweitzer <pierre@reactos.org>  Wed, 25 Jun 2014 13:25:08 +0000
