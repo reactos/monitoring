@@ -4,6 +4,9 @@ PLUGINS	= check_apcupsd check_mountpoints check_openvpn check_ram
 
 all: $(PLUGINS)
 
+install: $(PLUGINS)
+	install $< /usr/lib/nagios/plugins/$<
+
 $(PLUGINS):
 	$(CC) -o $@ $(CFLAGS) $@.c
 
