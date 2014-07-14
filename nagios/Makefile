@@ -1,7 +1,7 @@
 CC	= gcc
 CFLAGS	= -W -Wall -Wextra -O2
 PLUGINS	= check_apcupsd check_mountpoints check_openvpn check_ram
-DIRECT	= check_buildmaster_freeze check_git check_mailman check_master.sh check_real_disk check_serveraid check_smart check_snort check_vmware_modules
+DIRECT	= check_buildmaster_freeze check_git check_mailman check_master.sh check_procs.sh check_real_disk check_serveraid check_smart check_snort check_vmware_modules
 
 all: $(PLUGINS)
 

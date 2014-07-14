@@ -1,3 +1,9 @@
+nagios-plugins-reactos (1.1-1) precise; urgency=low
+
+  * Adding a wrapper for check_procs plugin
+
+ -- Pierre Schweitzer <pierre@reactos.org>  Mon, 14 Jul 2014 15:09:02 +0000
+
 nagios-plugins-reactos (1.0-1) precise; urgency=low
 
   * Initial release
