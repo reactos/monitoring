@@ -1,3 +1,9 @@
+nagios-plugins-reactos (1.2-1) precise; urgency=low
+
+  * Adding a wrapper for check_smart plugin
+
+ -- Pierre Schweitzer <pierre@reactos.org>  Fri, 13 Mar 2015 15:52:33 +0100
+
 nagios-plugins-reactos (1.1-1) precise; urgency=low
 
   * Adding a wrapper for check_procs plugin
