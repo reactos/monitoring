@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# File:         check_syn
+# Author:       Pierre Schweitzer <pierre@reactos.org>
+# Created:      26 Jun 2015
+# Licence:      GNU GPL v2 or any later version
+# Purpose:      Nagios plugin to check syn_sent TCP connections
+#
+
+
+conn=$(conntrack -L 2>/dev/null)
+syn=$(echo "$conn" | grep -c 'SYN_SENT')
+all=$(echo "$conn" | wc -l)
+rat=$(expr $all / $syn)
+
+if [ $rat -lt 5 ]; then
+	echo "CRITICAL: Too many SYN_SENT ($syn) for actual connections ($all)!|syn_sent=$syn total=$all"
+	exit 2
+else
+	echo "OK: SYN_SENT ($syn) ok for actual connections ($all)|syn_sent=$syn total=$all"
+	exit 0
+fi
+

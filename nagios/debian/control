@@ -13,7 +13,7 @@ Description: Plugins for nagios compatible monitoring systems
  .
   check_apcupsd, check_git, check_master.sh, check_openvpn, check_real_disk, check_smart,
   disable_buildmaster_freeze, check_buildmaster_freeze, check_mailman, check_mountpoints,
-  check_ram, check_serveraid, check_snort, check_vmware_modules
+  check_ram, check_serveraid, check_snort, check_syn, check_vmware_modules
  .
  This package provides the suite of plugins that are used and developed in-house for the ReactOS infrastructure.
 Homepage: https://www.reactos.org

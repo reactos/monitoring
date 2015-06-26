@@ -1,3 +1,9 @@
+nagios-plugins-reactos (1.3-1) precise; urgency=low
+
+  * Add a new check_syn plugin to check abnormal amount of SYN_SENT TCP connections
+
+ -- Pierre Schweitzer <pierre@reactos.org>  Fri, 26 Jun 2015 18:12:38 +0100
+
 nagios-plugins-reactos (1.2-1) precise; urgency=low
 
   * Adding a wrapper for check_smart plugin
